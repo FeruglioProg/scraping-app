@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { PropertyForm } from "@/components/property-form"
+import { RealSearchForm } from "@/components/real-search-form"
 import { PropertyResults } from "@/components/property-results"
 import { ThemeToggle } from "@/components/theme-toggle"
 import type { Property } from "@/lib/types"
@@ -11,67 +11,45 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [searchCriteria, setSearchCriteria] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [searchInfo, setSearchInfo] = useState<string | null>(null)
 
-  const handleSearch = async (criteria: any) => {
+  const handleRealSearch = async (criteria: any) => {
     setLoading(true)
     setError(null)
+    setSearchInfo(null)
     setSearchCriteria(criteria)
 
     try {
-      const response = await fetch("/api/search-properties", {
+      console.log("🚀 Starting real search...")
+
+      const response = await fetch("/api/search-real", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(criteria),
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
       const data = await response.json()
 
-      if (data.error) {
-        throw new Error(data.error)
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`)
       }
 
-      setResults(data.properties || [])
+      if (data.success) {
+        setResults(data.properties || [])
+        setSearchInfo(data.message || `Se encontraron ${data.count} propiedades`)
 
-      if (!data.properties || data.properties.length === 0) {
-        setError("No se encontraron propiedades con los criterios seleccionados.")
+        if (criteria.email && data.count > 0) {
+          setSearchInfo((prev) => prev + ` (enviado por email a ${criteria.email})`)
+        }
+      } else {
+        throw new Error(data.error || "Error en la búsqueda")
       }
     } catch (error) {
-      console.error("Error en la búsqueda:", error)
-      setError("Error al buscar propiedades: " + (error.message || "Error desconocido"))
+      console.error("❌ Search error:", error)
+      setError("Error en la búsqueda: " + error.message)
       setResults([])
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleScheduleEmail = async (email: string) => {
-    try {
-      const response = await fetch("/api/schedule-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          scheduleTime: "09:00",
-          neighborhoods: searchCriteria?.neighborhoods || ["Palermo"],
-          ownerOnly: searchCriteria?.ownerOnly || false,
-          timeRange: "7d",
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        alert("Email programado exitosamente para las " + (data.scheduleTime || "09:00"))
-      } else {
-        throw new Error(data.error || "Error al programar email")
-      }
-    } catch (error) {
-      console.error("Error al programar email:", error)
-      alert("Error al programar email: " + error.message)
     }
   }
 
@@ -79,7 +57,10 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-foreground">Property Finder Argentina</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Property Finder Argentina</h1>
+            <p className="text-sm text-muted-foreground">Scraping real de Zonaprop, Argenprop y MercadoLibre</p>
+          </div>
           <ThemeToggle />
         </div>
       </header>
@@ -87,7 +68,7 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
-            <PropertyForm onSearch={handleSearch} loading={loading} onScheduleEmail={handleScheduleEmail} />
+            <RealSearchForm onSearch={handleRealSearch} loading={loading} />
           </div>
 
           <div className="lg:col-span-2">
@@ -96,6 +77,13 @@ export default function Home() {
                 <p className="text-red-800 dark:text-red-200">{error}</p>
               </div>
             )}
+
+            {searchInfo && (
+              <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-green-800 dark:text-green-200">{searchInfo}</p>
+              </div>
+            )}
+
             <PropertyResults properties={results} loading={loading} searchCriteria={searchCriteria} />
           </div>
         </div>

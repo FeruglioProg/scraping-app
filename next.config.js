@@ -10,9 +10,6 @@ const nextConfig = {
     unoptimized: true,
   },
   swcMinify: true,
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
 }
 
 module.exports = nextConfig
