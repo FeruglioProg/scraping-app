@@ -2,24 +2,26 @@ export interface Property {
   id: string
   title: string
   link: string
-  totalPrice: number
+  total_price: number
   surface: number
-  pricePerM2: number
-  source: string
+  price_per_m2: number
+  source: "Zonaprop" | "Argenprop" | "MercadoLibre"
   neighborhood: string
-  isOwner: boolean
-  publishedDate: Date | string
+  is_owner: boolean
+  published_date: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface SearchCriteria {
   neighborhoods: string[]
-  ownerOnly: boolean
-  timeRange: string
-  customStartDate?: string
-  customEndDate?: string
-  maxPricePerM2?: number
+  owner_only: boolean
+  time_range: string
+  custom_start_date?: string
+  custom_end_date?: string
+  max_price_per_m2?: number
   email: string
-  scheduleTime: string
+  schedule_time: string
 }
 
 export interface ScrapingJob {
