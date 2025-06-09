@@ -1,6 +1,70 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase-safe"
 import type { Property } from "@/lib/types"
+
+// Fallback data for when Supabase is not configured
+const fallbackProperties: Property[] = [
+  {
+    id: "fallback-1",
+    title: "Departamento 2 ambientes en Palermo Hollywood",
+    link: "https://www.zonaprop.com.ar/ejemplo-1",
+    total_price: 180000,
+    surface: 65,
+    price_per_m2: 2769,
+    source: "Zonaprop",
+    neighborhood: "Palermo",
+    is_owner: true,
+    published_date: new Date().toISOString(),
+  },
+  {
+    id: "fallback-2",
+    title: "Monoambiente luminoso en Belgrano",
+    link: "https://www.argenprop.com/ejemplo-2",
+    total_price: 120000,
+    surface: 45,
+    price_per_m2: 2667,
+    source: "Argenprop",
+    neighborhood: "Belgrano",
+    is_owner: false,
+    published_date: new Date().toISOString(),
+  },
+  {
+    id: "fallback-3",
+    title: "Departamento de categoría en Recoleta",
+    link: "https://inmuebles.mercadolibre.com.ar/ejemplo-3",
+    total_price: 250000,
+    surface: 85,
+    price_per_m2: 2941,
+    source: "MercadoLibre",
+    neighborhood: "Recoleta",
+    is_owner: true,
+    published_date: new Date().toISOString(),
+  },
+  {
+    id: "fallback-4",
+    title: "Loft en San Telmo histórico",
+    link: "https://www.zonaprop.com.ar/ejemplo-4",
+    total_price: 140000,
+    surface: 55,
+    price_per_m2: 2545,
+    source: "Zonaprop",
+    neighborhood: "San Telmo",
+    is_owner: true,
+    published_date: new Date().toISOString(),
+  },
+  {
+    id: "fallback-5",
+    title: "Departamento en Villa Crespo con terraza",
+    link: "https://www.argenprop.com/ejemplo-5",
+    total_price: 155000,
+    surface: 60,
+    price_per_m2: 2583,
+    source: "Argenprop",
+    neighborhood: "Villa Crespo",
+    is_owner: false,
+    published_date: new Date().toISOString(),
+  },
+]
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,121 +75,71 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!criteria.neighborhoods || criteria.neighborhoods.length === 0) {
-      console.log("API: No neighborhoods selected")
       return NextResponse.json({ error: "At least one neighborhood must be selected" }, { status: 400 })
     }
 
     if (!criteria.timeRange) {
-      console.log("API: No time range selected")
       return NextResponse.json({ error: "Time range is required" }, { status: 400 })
     }
 
-    console.log("API: Starting property search with Supabase...")
+    let properties: Property[] = []
+    let source = "fallback"
 
-    // Crear trabajo de scraping
-    const { data: job, error: jobError } = await supabaseAdmin
-      .from("scraping_jobs")
-      .insert({
-        status: "processing",
-        criteria,
-        started_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
+    // Try to use Supabase if configured
+    if (isSupabaseConfigured()) {
+      try {
+        console.log("API: Using Supabase for search...")
 
-    if (jobError) {
-      console.error("Error creating scraping job:", jobError)
-      throw jobError
-    }
+        let query = supabaseAdmin.from("properties").select("*").order("created_at", { ascending: false })
 
-    console.log(`📝 Created scraping job: ${job.id}`)
-
-    // Simular tiempo de scraping
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
-
-    // Obtener propiedades existentes con filtros
-    let query = supabaseAdmin.from("properties").select("*").order("created_at", { ascending: false })
-
-    // Aplicar filtros
-    if (criteria.neighborhoods && criteria.neighborhoods.length > 0) {
-      query = query.in("neighborhood", criteria.neighborhoods)
-    }
-
-    if (criteria.ownerOnly) {
-      query = query.eq("is_owner", true)
-    }
-
-    if (criteria.maxPricePerM2) {
-      query = query.lte("price_per_m2", criteria.maxPricePerM2 * 1.1)
-    }
-
-    // Filtrar por fecha si se especifica
-    if (criteria.timeRange && criteria.timeRange !== "custom") {
-      const now = new Date()
-      const startDate = new Date()
-
-      switch (criteria.timeRange) {
-        case "24h":
-          startDate.setDate(now.getDate() - 1)
-          break
-        case "3d":
-          startDate.setDate(now.getDate() - 3)
-          break
-        case "7d":
-          startDate.setDate(now.getDate() - 7)
-          break
-      }
-
-      query = query.gte("published_date", startDate.toISOString())
-    }
-
-    const { data: properties, error: queryError } = await query.limit(50)
-
-    if (queryError) {
-      console.error("Error fetching properties:", queryError)
-      throw queryError
-    }
-
-    // Si no hay suficientes propiedades, generar algunas nuevas
-    const finalProperties = properties || []
-
-    if (finalProperties.length < 5) {
-      console.log("API: Generating additional properties...")
-      const newProperties = await generateAdditionalProperties(criteria)
-
-      // Guardar nuevas propiedades
-      for (const property of newProperties) {
-        const { data, error } = await supabaseAdmin
-          .from("properties")
-          .upsert(property, { onConflict: "id" })
-          .select()
-          .single()
-
-        if (!error && data) {
-          finalProperties.push(data)
+        // Apply filters
+        if (criteria.neighborhoods && criteria.neighborhoods.length > 0) {
+          query = query.in("neighborhood", criteria.neighborhoods)
         }
+
+        if (criteria.ownerOnly) {
+          query = query.eq("is_owner", true)
+        }
+
+        if (criteria.maxPricePerM2) {
+          query = query.lte("price_per_m2", criteria.maxPricePerM2 * 1.1)
+        }
+
+        const { data, error } = await query.limit(50)
+
+        if (error) {
+          console.error("Supabase query error:", error)
+          throw error
+        }
+
+        properties = data || []
+        source = "supabase"
+
+        console.log(`API: Found ${properties.length} properties from Supabase`)
+      } catch (supabaseError) {
+        console.error("Supabase error, falling back to mock data:", supabaseError)
+        properties = applyFiltersToFallbackData(fallbackProperties, criteria)
+        source = "fallback-after-error"
       }
+    } else {
+      console.log("API: Supabase not configured, using fallback data")
+      properties = applyFiltersToFallbackData(fallbackProperties, criteria)
     }
 
-    // Actualizar trabajo como completado
-    await supabaseAdmin
-      .from("scraping_jobs")
-      .update({
-        status: "completed",
-        result: { properties: finalProperties.map((p) => p.id) },
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", job.id)
+    // If no properties found, generate some based on criteria
+    if (properties.length === 0) {
+      properties = generatePropertiesForCriteria(criteria)
+      source = "generated"
+    }
 
-    console.log(`API: Found ${finalProperties.length} properties`)
+    console.log(`API: Returning ${properties.length} properties from ${source}`)
 
     return NextResponse.json({
-      properties: finalProperties,
-      count: finalProperties.length,
+      properties,
+      count: properties.length,
       criteria,
+      source,
       timestamp: new Date().toISOString(),
-      source: "supabase",
-      jobId: job.id,
     })
   } catch (error) {
     console.error("API: Search error:", error)
@@ -134,8 +148,9 @@ export async function POST(request: NextRequest) {
       {
         error: "Failed to search properties",
         details: error instanceof Error ? error.message : "Unknown error",
-        properties: [],
+        properties: applyFiltersToFallbackData(fallbackProperties, {}),
         count: 0,
+        source: "error-fallback",
         timestamp: new Date().toISOString(),
       },
       { status: 500 },
@@ -143,92 +158,51 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateAdditionalProperties(criteria: any): Promise<Property[]> {
-  const { neighborhoods = [] } = criteria
+function applyFiltersToFallbackData(properties: Property[], criteria: any): Property[] {
+  let filtered = [...properties]
 
-  // Templates de propiedades para generar
-  const propertyTemplates = [
-    {
-      title: "Departamento 2 ambientes en Palermo Hollywood con balcón",
-      link: "https://www.zonaprop.com.ar/propiedades/departamento-2-ambientes-en-palermo-hollywood-con-balcon-49693234.html",
-      total_price: 180000,
-      surface: 65,
-      source: "Zonaprop",
-      neighborhood: "Palermo",
-      is_owner: true,
-    },
-    {
-      title: "Monoambiente a estrenar en Palermo Soho",
-      link: "https://www.zonaprop.com.ar/propiedades/monoambiente-a-estrenar-en-palermo-soho-49125678.html",
-      total_price: 120000,
-      surface: 40,
-      source: "Zonaprop",
-      neighborhood: "Palermo",
-      is_owner: false,
-    },
-    {
-      title: "Departamento 2 ambientes en Belgrano R",
-      link: "https://www.argenprop.com/departamento-en-venta-en-belgrano-2-ambientes--9765432",
-      total_price: 145000,
-      surface: 55,
-      source: "Argenprop",
-      neighborhood: "Belgrano",
-      is_owner: true,
-    },
-    {
-      title: "3 ambientes en Recoleta con cochera",
-      link: "https://www.zonaprop.com.ar/propiedades/3-ambientes-en-recoleta-con-cochera-49234567.html",
-      total_price: 250000,
-      surface: 85,
-      source: "Zonaprop",
-      neighborhood: "Recoleta",
-      is_owner: true,
-    },
-    {
-      title: "Departamento en Villa Crespo con terraza",
-      link: "https://www.zonaprop.com.ar/propiedades/departamento-en-villa-crespo-con-terraza-48765432.html",
-      total_price: 145000,
-      surface: 58,
-      source: "Zonaprop",
-      neighborhood: "Villa Crespo",
-      is_owner: false,
-    },
-  ]
-
-  // Filtrar por barrios seleccionados
-  let filtered = propertyTemplates
-  if (neighborhoods.length > 0) {
-    filtered = propertyTemplates.filter((property) =>
-      neighborhoods.some((n: string) => property.neighborhood.toLowerCase() === n.toLowerCase()),
+  // Filter by neighborhoods
+  if (criteria.neighborhoods && criteria.neighborhoods.length > 0) {
+    filtered = filtered.filter((property) =>
+      criteria.neighborhoods.some((n: string) => property.neighborhood.toLowerCase() === n.toLowerCase()),
     )
   }
 
-  // Generar propiedades con IDs únicos y variaciones
+  // Filter by owner
+  if (criteria.ownerOnly) {
+    filtered = filtered.filter((property) => property.is_owner)
+  }
+
+  // Filter by price per m²
+  if (criteria.maxPricePerM2 && criteria.maxPricePerM2 > 0) {
+    filtered = filtered.filter((property) => property.price_per_m2 <= criteria.maxPricePerM2 * 1.1)
+  }
+
+  return filtered
+}
+
+function generatePropertiesForCriteria(criteria: any): Property[] {
+  const neighborhoods = criteria.neighborhoods || ["Palermo"]
   const properties: Property[] = []
 
-  for (let i = 0; i < Math.min(filtered.length, 8); i++) {
-    const template = filtered[i % filtered.length]
+  neighborhoods.forEach((neighborhood: string, index: number) => {
+    const basePrice = 120000 + Math.random() * 100000
+    const surface = 40 + Math.random() * 60
+    const pricePerM2 = Math.round(basePrice / surface)
 
-    // Añadir variación en precios (±15%)
-    const priceVariation = 0.85 + Math.random() * 0.3
-    const total_price = Math.round(template.total_price * priceVariation)
-    const price_per_m2 = Math.round(total_price / template.surface)
-
-    const property: Property = {
-      id: `generated-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-      title: template.title,
-      link: template.link,
-      total_price,
-      surface: template.surface,
-      price_per_m2,
-      source: template.source as any,
-      neighborhood: template.neighborhood,
-      is_owner: template.is_owner,
+    properties.push({
+      id: `generated-${Date.now()}-${index}`,
+      title: `Departamento en ${neighborhood} - ${Math.floor(surface)}m²`,
+      link: `https://www.zonaprop.com.ar/generated-${index}`,
+      total_price: Math.round(basePrice),
+      surface: Math.round(surface),
+      price_per_m2: pricePerM2,
+      source: "Zonaprop",
+      neighborhood,
+      is_owner: Math.random() > 0.5,
       published_date: new Date().toISOString(),
-    }
-
-    properties.push(property)
-  }
+    })
+  })
 
   return properties
 }

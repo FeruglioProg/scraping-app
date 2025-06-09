@@ -6,7 +6,6 @@ import { PropertyResults } from "@/components/property-results"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SupabaseStatus } from "@/components/supabase-status"
 import type { Property } from "@/lib/types"
-import { supabase } from "@/lib/supabase"
 
 export default function Home() {
   const [results, setResults] = useState<Property[]>([])
@@ -20,30 +19,25 @@ export default function Home() {
     setSearchCriteria(criteria)
 
     try {
-      // Construir la consulta a Supabase
-      let query = supabase.from("properties").select("*")
+      const response = await fetch("/api/search-properties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(criteria),
+      })
 
-      // Aplicar filtros
-      if (criteria.neighborhoods && criteria.neighborhoods.length > 0) {
-        query = query.in("neighborhood", criteria.neighborhoods)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      if (criteria.ownerOnly) {
-        query = query.eq("is_owner", true)
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error)
       }
 
-      if (criteria.maxPricePerM2) {
-        query = query.lte("price_per_m2", criteria.maxPricePerM2)
-      }
+      setResults(data.properties || [])
 
-      // Ejecutar la consulta
-      const { data, error: supabaseError } = await query.order("price_per_m2").limit(50)
-
-      if (supabaseError) throw supabaseError
-
-      setResults(data || [])
-
-      if (data?.length === 0) {
+      if (!data.properties || data.properties.length === 0) {
         setError("No se encontraron propiedades con los criterios seleccionados.")
       }
     } catch (error) {
@@ -56,8 +50,30 @@ export default function Home() {
   }
 
   const handleScheduleEmail = async (email: string) => {
-    // Implementación pendiente
-    alert("Función de programación de emails pendiente de implementar")
+    try {
+      const response = await fetch("/api/schedule-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          scheduleTime: "09:00",
+          neighborhoods: searchCriteria?.neighborhoods || ["Palermo"],
+          ownerOnly: searchCriteria?.ownerOnly || false,
+          timeRange: "7d",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert("Email programado exitosamente para las " + data.scheduleTime || "09:00")
+      } else {
+        throw new Error(data.error || "Error al programar email")
+      }
+    } catch (error) {
+      console.error("Error al programar email:", error)
+      alert("Error al programar email: " + error.message)
+    }
   }
 
   return (
