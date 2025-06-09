@@ -11,7 +11,7 @@ export const mockProperties: Property[] = [
     source: "Zonaprop",
     neighborhood: "Palermo",
     isOwner: true,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-2",
@@ -23,7 +23,7 @@ export const mockProperties: Property[] = [
     source: "Argenprop",
     neighborhood: "Belgrano",
     isOwner: false,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-3",
@@ -35,7 +35,7 @@ export const mockProperties: Property[] = [
     source: "MercadoLibre",
     neighborhood: "Recoleta",
     isOwner: true,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-4",
@@ -47,7 +47,7 @@ export const mockProperties: Property[] = [
     source: "Zonaprop",
     neighborhood: "San Telmo",
     isOwner: true,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-5",
@@ -59,7 +59,7 @@ export const mockProperties: Property[] = [
     source: "Argenprop",
     neighborhood: "Villa Crespo",
     isOwner: false,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-6",
@@ -71,7 +71,7 @@ export const mockProperties: Property[] = [
     source: "Zonaprop",
     neighborhood: "Caballito",
     isOwner: false,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-7",
@@ -83,7 +83,7 @@ export const mockProperties: Property[] = [
     source: "Argenprop",
     neighborhood: "Flores",
     isOwner: true,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
   {
     id: "mock-8",
@@ -95,7 +95,7 @@ export const mockProperties: Property[] = [
     source: "MercadoLibre",
     neighborhood: "Barracas",
     isOwner: true,
-    publishedDate: new Date(),
+    publishedDate: new Date().toISOString(),
   },
 ]
 
@@ -125,7 +125,6 @@ export function searchProperties(criteria: any): Property[] {
   return filtered
 }
 
-// Add this function at the end of the file
 export function getFallbackProperties(criteria: any): Property[] {
   return searchProperties(criteria)
 }

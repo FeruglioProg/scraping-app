@@ -8,7 +8,7 @@ export interface Property {
   source: string
   neighborhood: string
   isOwner: boolean
-  publishedDate: Date
+  publishedDate: Date | string
 }
 
 export interface SearchCriteria {
