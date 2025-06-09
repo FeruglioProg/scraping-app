@@ -1,8 +1,7 @@
 import nodemailer from "nodemailer"
-import type { Property } from "./types"
 
 // Configuración simple de email
-const transporter = nodemailer.createTransporter({
+export const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.GMAIL_USER,
@@ -10,7 +9,7 @@ const transporter = nodemailer.createTransporter({
   },
 })
 
-export async function sendPropertyEmail(email: string, properties: Property[], criteria: any) {
+export async function sendPropertyEmail(email, properties, criteria) {
   try {
     const htmlContent = generateEmailHTML(properties, criteria)
 
@@ -29,7 +28,7 @@ export async function sendPropertyEmail(email: string, properties: Property[], c
   }
 }
 
-function generateEmailHTML(properties: Property[], criteria: any): string {
+function generateEmailHTML(properties, criteria) {
   const neighborhoods = criteria.neighborhoods?.join(", ") || "Todos"
   const priceFilter = criteria.maxPricePerM2 ? `Máx $${criteria.maxPricePerM2}/m²` : "Sin límite"
 

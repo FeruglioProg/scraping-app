@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { scrapeAllSites } from "@/lib/simple-scraper"
 import { sendPropertyEmail } from "@/lib/email-simple"
 
-export async function POST(request: NextRequest) {
+export async function POST(request) {
   try {
     const criteria = await request.json()
 

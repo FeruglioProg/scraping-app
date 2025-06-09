@@ -1,25 +1,15 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
+export const metadata = {
   title: "Property Finder Argentina",
-  description: "Find and track property listings from Zonaprop, Argenprop, and MercadoLibre",
-  keywords: "property, real estate, Argentina, Buenos Aires, Zonaprop, Argenprop, MercadoLibre",
+  description: "Buscador de propiedades inmobiliarias en Argentina",
     generator: 'v0.dev'
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>{children}</body>
+    <html lang="es">
+      <body>{children}</body>
     </html>
   )
 }

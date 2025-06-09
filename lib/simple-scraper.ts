@@ -1,5 +1,4 @@
 import * as cheerio from "cheerio"
-import type { Property } from "./types"
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -9,14 +8,10 @@ const getHeaders = () => ({
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
   "Accept-Language": "es-AR,es;q=0.9,en;q=0.8",
-  "Accept-Encoding": "gzip, deflate, br",
-  DNT: "1",
-  Connection: "keep-alive",
-  "Upgrade-Insecure-Requests": "1",
 })
 
-export async function scrapeZonaprop(neighborhood: string): Promise<Property[]> {
-  const properties: Property[] = []
+export async function scrapeZonaprop(neighborhood: string) {
+  const properties = []
 
   try {
     console.log(`🔍 Scraping Zonaprop for ${neighborhood}...`)
@@ -26,7 +21,7 @@ export async function scrapeZonaprop(neighborhood: string): Promise<Property[]> 
 
     const response = await fetch(searchUrl, {
       headers: getHeaders(),
-      next: { revalidate: 300 }, // Cache por 5 minutos
+      cache: "no-store",
     })
 
     if (!response.ok) {
@@ -87,8 +82,8 @@ export async function scrapeZonaprop(neighborhood: string): Promise<Property[]> 
   return properties
 }
 
-export async function scrapeArgenprop(neighborhood: string): Promise<Property[]> {
-  const properties: Property[] = []
+export async function scrapeArgenprop(neighborhood: string) {
+  const properties = []
 
   try {
     console.log(`🔍 Scraping Argenprop for ${neighborhood}...`)
@@ -97,7 +92,7 @@ export async function scrapeArgenprop(neighborhood: string): Promise<Property[]>
 
     const response = await fetch(searchUrl, {
       headers: getHeaders(),
-      next: { revalidate: 300 },
+      cache: "no-store",
     })
 
     if (!response.ok) {
@@ -154,8 +149,8 @@ export async function scrapeArgenprop(neighborhood: string): Promise<Property[]>
   return properties
 }
 
-export async function scrapeMercadoLibre(neighborhood: string): Promise<Property[]> {
-  const properties: Property[] = []
+export async function scrapeMercadoLibre(neighborhood: string) {
+  const properties = []
 
   try {
     console.log(`🔍 Scraping MercadoLibre for ${neighborhood}...`)
@@ -164,7 +159,7 @@ export async function scrapeMercadoLibre(neighborhood: string): Promise<Property
 
     const response = await fetch(searchUrl, {
       headers: getHeaders(),
-      next: { revalidate: 300 },
+      cache: "no-store",
     })
 
     if (!response.ok) {
@@ -219,8 +214,8 @@ export async function scrapeMercadoLibre(neighborhood: string): Promise<Property
   return properties
 }
 
-export async function scrapeAllSites(criteria: any): Promise<Property[]> {
-  const allProperties: Property[] = []
+export async function scrapeAllSites(criteria: any) {
+  const allProperties = []
   const { neighborhoods = [] } = criteria
 
   console.log("🚀 Starting real scraping...")
