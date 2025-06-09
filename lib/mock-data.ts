@@ -124,3 +124,8 @@ export function searchProperties(criteria: any): Property[] {
 
   return filtered
 }
+
+// Add this function at the end of the file
+export function getFallbackProperties(criteria: any): Property[] {
+  return searchProperties(criteria)
+}
