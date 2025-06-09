@@ -4,7 +4,6 @@ import { useState } from "react"
 import { PropertyForm } from "@/components/property-form"
 import { PropertyResults } from "@/components/property-results"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { SupabaseStatus } from "@/components/supabase-status"
 import type { Property } from "@/lib/types"
 
 export default function Home() {
@@ -66,7 +65,7 @@ export default function Home() {
       const data = await response.json()
 
       if (data.success) {
-        alert("Email programado exitosamente para las " + data.scheduleTime || "09:00")
+        alert("Email programado exitosamente para las " + (data.scheduleTime || "09:00"))
       } else {
         throw new Error(data.error || "Error al programar email")
       }
@@ -89,9 +88,6 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <PropertyForm onSearch={handleSearch} loading={loading} onScheduleEmail={handleScheduleEmail} />
-            <div className="mt-4">
-              <SupabaseStatus />
-            </div>
           </div>
 
           <div className="lg:col-span-2">

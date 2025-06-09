@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+*.log
+.env.local
+.env.*.local
+server/
+scripts/
+supabase/
+monitoring/
+uploads/
+*.md
+*.sh
+Dockerfile*
+docker-compose.yml
+prometheus.yml
