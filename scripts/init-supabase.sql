@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS properties (
 CREATE INDEX IF NOT EXISTS idx_properties_neighborhood ON properties(neighborhood);
 CREATE INDEX IF NOT EXISTS idx_properties_source ON properties(source);
 CREATE INDEX IF NOT EXISTS idx_properties_price_per_m2 ON properties(price_per_m2);
-CREATE INDEX IF NOT EXISTS idx_properties_created_at ON properties(created_at);
 
 -- Crear tabla de búsquedas programadas
 CREATE TABLE IF NOT EXISTS scheduled_searches (
@@ -36,10 +35,6 @@ CREATE TABLE IF NOT EXISTS scheduled_searches (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Crear índices para búsquedas programadas
-CREATE INDEX IF NOT EXISTS idx_scheduled_searches_email ON scheduled_searches(email);
-CREATE INDEX IF NOT EXISTS idx_scheduled_searches_is_active ON scheduled_searches(is_active);
-
 -- Crear tabla de trabajos de scraping
 CREATE TABLE IF NOT EXISTS scraping_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -51,10 +46,6 @@ CREATE TABLE IF NOT EXISTS scraping_jobs (
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Crear índices para trabajos de scraping
-CREATE INDEX IF NOT EXISTS idx_scraping_jobs_status ON scraping_jobs(status);
-CREATE INDEX IF NOT EXISTS idx_scraping_jobs_created_at ON scraping_jobs(created_at);
 
 -- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -96,10 +87,5 @@ INSERT INTO properties (id, title, link, total_price, surface, price_per_m2, sou
 ('example-2', 'Monoambiente luminoso en Belgrano', 'https://www.argenprop.com/ejemplo-2', 120000, 45, 2667, 'Argenprop', 'Belgrano', false, NOW()),
 ('example-3', 'Departamento de categoría en Recoleta', 'https://inmuebles.mercadolibre.com.ar/ejemplo-3', 250000, 85, 2941, 'MercadoLibre', 'Recoleta', true, NOW()),
 ('example-4', 'Loft en San Telmo histórico', 'https://www.zonaprop.com.ar/ejemplo-4', 140000, 55, 2545, 'Zonaprop', 'San Telmo', true, NOW()),
-('example-5', 'Departamento en Villa Crespo con terraza', 'https://www.argenprop.com/ejemplo-5', 155000, 60, 2583, 'Argenprop', 'Villa Crespo', false, NOW()),
-('example-6', 'PH reciclado en Barracas', 'https://www.argenprop.com/ejemplo-6', 140000, 70, 2000, 'Argenprop', 'Barracas', true, NOW()),
-('example-7', 'Departamento en Caballito con patio', 'https://www.zonaprop.com.ar/ejemplo-7', 135000, 60, 2250, 'Zonaprop', 'Caballito', true, NOW()),
-('example-8', '2 ambientes en Flores cerca del subte', 'https://inmuebles.mercadolibre.com.ar/ejemplo-8', 110000, 50, 2200, 'MercadoLibre', 'Flores', false, NOW())
+('example-5', 'Departamento en Villa Crespo con terraza', 'https://www.argenprop.com/ejemplo-5', 155000, 60, 2583, 'Argenprop', 'Villa Crespo', false, NOW())
 ON CONFLICT (id) DO NOTHING;
-
-COMMIT;

@@ -1,162 +1,63 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { PropertyForm } from "@/components/property-form"
 import { PropertyResults } from "@/components/property-results"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { SupabaseStatus } from "@/components/supabase-status"
 import type { Property } from "@/lib/types"
-import { DebugPanel } from "@/components/debug-panel"
+import { supabase } from "@/lib/supabase"
 
 export default function Home() {
   const [results, setResults] = useState<Property[]>([])
   const [loading, setLoading] = useState(false)
   const [searchCriteria, setSearchCriteria] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
-
-  // Limpiar intervalo al desmontar
-  useEffect(() => {
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-      }
-    }
-  }, [pollingInterval])
-
-  // Función para verificar estado del trabajo
-  const checkJobStatus = async (id: string) => {
-    try {
-      const response = await fetch(`/api/job-status/${id}`)
-
-      if (!response.ok) {
-        throw new Error("Failed to check job status")
-      }
-
-      const data = await response.json()
-
-      if (data.job.status === "completed") {
-        // Si el trabajo está completo, actualizar resultados y detener polling
-        setResults(data.properties || [])
-        setLoading(false)
-
-        if (pollingInterval) {
-          clearInterval(pollingInterval)
-          setPollingInterval(null)
-        }
-
-        if (data.properties.length === 0) {
-          setError("No properties found matching your criteria. Try adjusting your filters.")
-        }
-      } else if (data.job.status === "failed") {
-        // Si el trabajo falló, mostrar error y detener polling
-        setError(data.job.error || "Failed to search properties")
-        setLoading(false)
-
-        if (pollingInterval) {
-          clearInterval(pollingInterval)
-          setPollingInterval(null)
-        }
-      }
-    } catch (error) {
-      console.error("Error checking job status:", error)
-    }
-  }
 
   const handleSearch = async (criteria: any) => {
     setLoading(true)
     setError(null)
     setSearchCriteria(criteria)
 
-    // Limpiar intervalo anterior si existe
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      setPollingInterval(null)
-    }
-
     try {
-      console.log("Frontend: Starting search with criteria:", criteria)
+      // Construir la consulta a Supabase
+      let query = supabase.from("properties").select("*")
 
-      const response = await fetch("/api/search-properties", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(criteria),
-      })
-
-      console.log("Frontend: API response status:", response.status)
-
-      if (!response.ok) {
-        let errorMessage = "Failed to search properties"
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.details || errorData.error || errorMessage
-        } catch (jsonError) {
-          // Si no podemos parsear el JSON, usamos el texto de la respuesta
-          errorMessage = await response.text()
-        }
-
-        console.error("Frontend: API error:", errorMessage)
-        throw new Error(errorMessage)
+      // Aplicar filtros
+      if (criteria.neighborhoods && criteria.neighborhoods.length > 0) {
+        query = query.in("neighborhood", criteria.neighborhoods)
       }
 
-      const data = await response.json()
-      console.log("Frontend: Received data:", data)
-
-      // Actualizar resultados iniciales
-      setResults(data.properties || [])
-
-      // Si hay un jobId y no hay suficientes resultados, iniciar polling
-      if (data.jobId && data.properties.length < 5) {
-        setJobId(data.jobId)
-
-        // Iniciar polling cada 2 segundos
-        const interval = setInterval(() => {
-          checkJobStatus(data.jobId)
-        }, 2000)
-
-        setPollingInterval(interval)
-      } else {
-        setLoading(false)
+      if (criteria.ownerOnly) {
+        query = query.eq("is_owner", true)
       }
 
-      if (data.properties?.length === 0) {
-        setError("No properties found matching your criteria. Try adjusting your filters.")
+      if (criteria.maxPricePerM2) {
+        query = query.lte("price_per_m2", criteria.maxPricePerM2)
+      }
+
+      // Ejecutar la consulta
+      const { data, error: supabaseError } = await query.order("price_per_m2").limit(50)
+
+      if (supabaseError) throw supabaseError
+
+      setResults(data || [])
+
+      if (data?.length === 0) {
+        setError("No se encontraron propiedades con los criterios seleccionados.")
       }
     } catch (error) {
-      console.error("Frontend: Search error:", error)
-      setError(error instanceof Error ? error.message : "An unexpected error occurred")
+      console.error("Error en la búsqueda:", error)
+      setError("Error al buscar propiedades: " + (error.message || "Error desconocido"))
       setResults([])
+    } finally {
       setLoading(false)
     }
   }
 
   const handleScheduleEmail = async (email: string) => {
-    if (!searchCriteria) return
-
-    try {
-      const response = await fetch("/api/schedule-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...searchCriteria,
-          email,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to schedule email")
-      }
-
-      // Show success message
-      alert("Email notifications scheduled successfully!")
-    } catch (error) {
-      console.error("Schedule error:", error)
-      alert("Failed to schedule email notifications")
-    }
+    // Implementación pendiente
+    alert("Función de programación de emails pendiente de implementar")
   }
 
   return (
@@ -172,7 +73,9 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <PropertyForm onSearch={handleSearch} loading={loading} onScheduleEmail={handleScheduleEmail} />
-            <DebugPanel onTestScraping={handleSearch} />
+            <div className="mt-4">
+              <SupabaseStatus />
+            </div>
           </div>
 
           <div className="lg:col-span-2">
